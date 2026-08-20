@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "Temporary Plugin",
+	"Description": "독립적인 C++ 로직과 콘텐츠를 가질 수 있는 커스텀 플러그인 샘플입니다.",
+	"Category": "Custom",
+	"CreatedBy": "Antigravity",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "Temporary",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

@@ -1,0 +1,41 @@
+# Unreal Engine Standard .gitignore
+
+# Visual Studio / Rider / IDE temp folders & files
+.vs/
+.idea/
+.vscode/
+*.sln
+*.slnx
+*.suo
+*.user
+*.userosset
+*.sln.docstates
+*.VC.db
+*.opendb
+*.sdf
+*.db
+
+# Compiled Binaries & Build Outputs
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Build/BuildSlots/
+Build/Receipts/
+
+# Plugin Intermediate & Binaries
+Plugins/*/Binaries/
+Plugins/*/Intermediate/
+Plugins/*/Saved/
+Plugins/*/DerivedDataCache/
+
+# OS / System Generated Files
+.DS_Store
+[Tt]humbs.db
+[Dd]esktop.ini
+*.dSYM/
+*.log
+
+# Android / iOS target output
+/Build/Android/
+/Build/IOS/
