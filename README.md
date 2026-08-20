@@ -1,6 +1,6 @@
 # [7번 과제] 언리얼 모듈과 플러그인 제작 및 연결 가이드
 
-본 프로젝트는 **언리얼 엔진(Unreal Engine)**의 핵심 구조인 **모듈(Module)**과 **플러그인(Plugin)**의 개념을 파악하고, 커스텀 모듈 `Test` 및 커스텀 플러그인 `Temporary`를 수동으로 구축하여 상호 연결 및 C++ 클래스 스폰을 검증한 과제입니다.
+본 프로젝트는 **언리얼 엔진(Unreal Engine)**의 핵심 구조인 **모듈(Module)**과 **플러그인(Plugin)**의 개념을 파악하고, 커스텀 모듈 `Test` 및 커스텀 플러그인 `Temporary`를 수동으로 구축하여 상호 연결 및 C++ 클래스 스폰/참조를 검증한 과제입니다.
 
 ---
 
@@ -9,9 +9,9 @@
 2. [프로젝트 디렉토리 구조](#2-프로젝트-디렉토리-구조)
 3. [1단계: 신규 모듈(Test) 생성 및 구성](#3-1단계-신규-모듈test-생성-및-구성)
 4. [2단계: 모듈 연결 및 Target / .uproject 갱신](#4-2단계-모듈-연결-및-target--uproject-갱신)
-5. [3단계: 모듈 간 상호작용 (ATestActor 스폰)](#5-3단계-모듈-간-상호작용-atestactor-스폰)
+5. [3단계: 모듈 간 상호작용 (ATestActor & UCharacterData)](#5-3단계-모듈-간-상호작용-atestactor--ucharacterdata)
 6. [4단계: 독립 플러그인(Temporary) 구축](#6-4단계-독립-플러그인temporary-구축)
-7. [5단계: 플러그인 클래스 참조 및 검증 (도전 기능)](#7-5단계-플러그인-클래스-참조-및-검증-도전-기능)
+7. [5단계: 도전 기능 (UObject 자식 클래스 & 플러그인 클래스 참조)](#7-5단계-도전-기능-uobject-자식-클래스--플러그인-클래스-참조)
 8. [빌드 및 검증 방법](#8-빌드-및-검증-방법)
 
 ---
@@ -35,15 +35,17 @@ LyraStarterGame/
 ├── Source/
 │   ├── LyraStarterGame/            # 주 게임 모듈 (Primary Module)
 │   │   ├── LyraStarterGame.Build.cs # Test, Temporary 모듈 종속성 추가
-│   │   ├── LyraStarterGameCharacter.h / .cpp # ATestActor 및 ATemporaryPluginActor 스폰
+│   │   ├── LyraStarterGameCharacter.h / .cpp # ATestActor, ATemporaryPluginActor, UCharacterData 참조
 │   ├── Test/                       # [신규 추가 모듈]
 │   │   ├── Test.Build.cs           # Core, CoreUObject, Engine 종속성 정의
 │   │   ├── Public/
 │   │   │   ├── Test.h             # FTestModule (IModuleInterface)
-│   │   │   └── TestActor.h        # TEST_API 적용 C++ Actor 클래스
+│   │   │   ├── TestActor.h        # TEST_API 적용 C++ Actor 클래스
+│   │   │   └── CharacterData.h    # [도전 기능] TEST_API 적용 UObject 데이터 저장용 클래스
 │   │   └── Private/
 │   │       ├── Test.cpp           # IMPLEMENT_MODULE(FTestModule, Test)
-│   │       └── TestActor.cpp      # BeginPlay에서 디버그 메시지/로그 출력
+│   │       ├── TestActor.cpp      # BeginPlay에서 디버그 메시지/로그 출력
+│   │       └── CharacterData.cpp  # 데이터 속성 초기화 및 포맷팅 로직
 │   ├── LyraStarterGame.Target.cs      # ExtraModuleNames.Add("Test")
 │   └── LyraStarterGameEditor.Target.cs# ExtraModuleNames.Add("Test")
 └── Plugins/                        # [신규 추가 플러그인]
@@ -69,6 +71,7 @@ LyraStarterGame/
 `Source/Test/Test.Build.cs` 위치에 작성하여 필수 엔진 모듈을 의존성에 추가합니다.
 ```csharp
 using UnrealBuildTool;
+using System.IO;
 
 public class Test : ModuleRules
 {
@@ -76,6 +79,8 @@ public class Test : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine" });
+        PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Public"));
+        PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Private"));
     }
 }
 ```
@@ -129,7 +134,7 @@ IMPLEMENT_MODULE(FTestModule, Test);
 
 ---
 
-## 5. 3단계: 모듈 간 상호작용 (`ATestActor` 스폰)
+## 5. 3단계: 모듈 간 상호작용 (`ATestActor` & `UCharacterData`)
 
 ### (1) `TEST_API` 매크로를 통한 심볼 내보내기
 `Source/Test/Public/TestActor.h`:
@@ -149,15 +154,6 @@ protected:
     virtual void BeginPlay() override;
 };
 ```
-
-### (2) 주 모듈(`LyraStarterGame`)에서 참조 및 스폰
-1. `LyraStarterGame.Build.cs` 의존성에 `"Test"` 추가.
-2. `LyraStarterGameCharacter.cpp`의 `BeginPlay()`에서 `ATestActor` 스폰:
-   ```cpp
-   ATestActor* SpawnedTestActor = World->SpawnActor<ATestActor>(
-       ATestActor::StaticClass(), SpawnLocation, SpawnRotation, SpawnParams
-   );
-   ```
 
 ---
 
@@ -197,10 +193,52 @@ protected:
 
 ---
 
-## 7. 5단계: 플러그인 클래스 참조 및 검증 (도전 기능)
+## 7. 5단계: 도전 기능 (UObject 자식 클래스 & 플러그인 클래스 참조)
 
-- 플러그인 내에 `TEMPORARY_API`가 적용된 `ATemporaryPluginActor` 클래스를 구현합니다.
-- 메인 게임 모듈(`LyraStarterGame.Build.cs`)에 `"Temporary"` 의존성을 등록하고, `LyraStarterGameCharacter`에서 `ATemporaryPluginActor`를 스폰하여 메인 모듈 ↔ 플러그인 모듈 간 직접 참조 및 동적 스폰 동작을 검증합니다.
+### (1) UObject 자식 클래스 (`UCharacterData`) 구현
+Test 모듈 내에 데이터 저장용 UObject 클래스를 작성합니다:
+```cpp
+// Source/Test/Public/CharacterData.h
+#pragma once
+
+#include "CoreMinimal.h"
+#include "UObject/NoExportTypes.h"
+#include "CharacterData.generated.h"
+
+UCLASS(BlueprintType, Blueprintable)
+class TEST_API UCharacterData : public UObject
+{
+	GENERATED_BODY()
+public:
+	UCharacterData();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FString CharacterName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MaxHealth;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float MovementSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 AttackPower;
+
+	UFUNCTION(BlueprintCallable)
+	FString GetFormattedDataString() const;
+};
+```
+
+### (2) 캐릭터 클래스(`LyraStarterGameCharacter`)에서 사용 및 화면 출력
+```cpp
+// LyraStarterGameCharacter.cpp
+UCharacterData* CharData = NewObject<UCharacterData>(this);
+if (CharData)
+{
+    FString DataStr = CharData->GetFormattedDataString();
+    GEngine->AddOnScreenDebugMessage(-1, 9.0f, FColor::Yellow, FString::Printf(TEXT("[Test Module UObject] %s"), *DataStr));
+}
+```
 
 ---
 
@@ -211,5 +249,7 @@ protected:
    & "C:\Program Files\Epic Games\UE_5.8\Engine\Build\BatchFiles\Build.bat" LyraStarterGameEditor Win64 Development -Project="c:\Unreal\LyraStarterGame\LyraStarterGame.uproject" -WaitMutex
    ```
 2. 언리얼 에디터 실행 또는 런타임 플레이 시:
-   - Output Log 창에서 `[Test Module]`, `[Temporary Plugin]`, `[Primary Module]` 로그 출력 확인.
-   - 화면 좌상단에 `ATestActor` 및 `ATemporaryPluginActor` 스폰 성공 디버그 메시지(초록색/청록색) 확인.
+   - 화면 좌상단 디버그 메시지 확인:
+     - 🟢 **초록색**: `ATestActor` 스폰 메시지
+     - 🩵 **청록색**: `ATemporaryPluginActor` 스폰 메시지
+     - 🟡 **노란색**: `UCharacterData` (UObject) 속성 출력 메시지 (`Name: Hero_Antigravity | MaxHP: 150.0 | Speed: 650.0 | Atk: 35`)

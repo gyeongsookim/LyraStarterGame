@@ -13,6 +13,7 @@
 #include "LyraStarterGame.h"
 #include "TestActor.h"
 #include "TemporaryPluginActor.h"
+#include "CharacterData.h"
 
 ALyraStarterGameCharacter::ALyraStarterGameCharacter()
 {
@@ -73,12 +74,30 @@ void ALyraStarterGameCharacter::BeginPlay()
 			UE_LOG(LogTemp, Warning, TEXT("[Primary Module] Successfully spawned ATestActor from Test Module!"));
 		}
 
-		// 2. [도전 기능] Temporary 플러그인의 TemporaryPluginActor 스폰
+		// 2. Temporary 플러그인의 TemporaryPluginActor 스폰
 		FVector PluginSpawnLocation = GetActorLocation() + GetActorRightVector() * 150.0f;
 		ATemporaryPluginActor* SpawnedPluginActor = World->SpawnActor<ATemporaryPluginActor>(ATemporaryPluginActor::StaticClass(), PluginSpawnLocation, SpawnRotation, SpawnParams);
 		if (SpawnedPluginActor)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[Primary Module] Successfully spawned ATemporaryPluginActor from Temporary Plugin!"));
+		}
+
+		// 3. [도전 기능] UObject 자식 클래스(UCharacterData) 인스턴스화 및 속성 화면 출력
+		UCharacterData* CharData = NewObject<UCharacterData>(this);
+		if (CharData)
+		{
+			FString DataStr = CharData->GetFormattedDataString();
+			UE_LOG(LogTemp, Warning, TEXT("[Primary Module] Created UCharacterData (UObject): %s"), *DataStr);
+
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(
+					-1,
+					9.0f,
+					FColor::Yellow,
+					FString::Printf(TEXT("[Test Module UObject] %s"), *DataStr)
+				);
+			}
 		}
 	}
 }
